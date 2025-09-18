@@ -8,11 +8,15 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 contract FundMe {
 
-    uint256 public minUSD = 50;
+    uint256 public minUSD = 50 * 1e18;
+    address[] public funders;
+    mapping(address => uint256) public addressToAmountFunded;
 
     function fund() public payable {
         //Min Fund amount in USD
-        require(msg.value >= minUSD, "Send me more"); // 1e18 == 1 * 10 ** 18 == 1000000000000000000
+        require(getConversionRate(msg.value) >= minUSD, "Send me more"); // 1e18 == 1 * 10 ** 18 == 1000000000000000000
+        funders.push(msg.sender);
+        addressToAmountFunded[msg.sender] = msg.value;
     }
 
     function getPrice() public view returns (uint256) {
