@@ -1,39 +1,53 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.8;
 
+import "contracts/PriceConvertor.sol";
+
 //Get funds from users
 //Withdraw funds
 //Set min funding value in USD
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 contract FundMe {
+    using PriceConvertor for uint256;
 
     uint256 public minUSD = 50 * 1e18;
     address[] public funders;
     mapping(address => uint256) public addressToAmountFunded;
 
+    address public owner;
+
+    constructor(){
+        owner = msg.sender;
+    }
+
     function fund() public payable {
         //Min Fund amount in USD
-        require(getConversionRate(msg.value) >= minUSD, "Send me more"); // 1e18 == 1 * 10 ** 18 == 1000000000000000000
+        
+        require(msg.value.getConversionRate() >= minUSD, "Send me more"); // 1e18 == 1 * 10 ** 18 == 1000000000000000000
         funders.push(msg.sender);
         addressToAmountFunded[msg.sender] = msg.value;
     }
 
-    function getPrice() public view returns (uint256) {
-        //ABI
-        //Address - 0x694AA1769357215DE4FAC081bf1f309aDC325306
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
 
-        (, int256 price, , ,) = priceFeed.latestRoundData();
-        // ETH in USD
-        return uint256(price * 1e10);
+
+    function withdraw() public onlyOwner {
+        for (uint256 i = 0; i <= funders.length; i++) 
+        {
+            address funder = funders[i];
+            addressToAmountFunded[funder] = 0;
+            payable(funder).transfer(address(this).balance);
+            funders = new address[](0);
+       
+            //transfer
+            //send
+            //call
+        }
     }
 
-    function getConversionRate(uint ethAmount) public view returns (uint256) {
-        uint ethPrice = getPrice();
-        uint ethAmountInUSD = (ethPrice * ethAmount) / 1e18;
-        return ethAmountInUSD;
+    modifier onlyOwner {
+        require(msg.sender == owner, "Sender is not owner");
+        _;
     }
 
-    //function withdraw(){}
+
 }
